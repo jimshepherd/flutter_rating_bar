@@ -12,9 +12,9 @@ class RatingWidget {
   final Widget empty;
 
   RatingWidget({
-    @required this.full,
-    @required this.half,
-    @required this.empty,
+    required this.full,
+    required this.half,
+    required this.empty,
   });
 }
 
@@ -24,38 +24,53 @@ class _HalfRatingWidget extends StatelessWidget {
   final bool enableMask;
   final bool rtlMode;
   final Color unratedColor;
+  final Axis direction;
+  final bool enableFullWidth;
+  final bool reversed;
 
   _HalfRatingWidget({
-    @required this.size,
-    @required this.child,
-    @required this.enableMask,
-    @required this.rtlMode,
-    @required this.unratedColor,
+    required this.size,
+    required this.child,
+    required this.enableMask,
+    required this.rtlMode,
+    required this.unratedColor,
+    this.direction = Axis.horizontal,
+    this.enableFullWidth = false,
+    this.reversed = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: size,
-      width: size,
+      width: enableFullWidth ? MediaQuery.of(context).size.width : size,
       child: enableMask
           ? Stack(
               fit: StackFit.expand,
               children: [
                 FittedBox(
                   fit: BoxFit.contain,
+                  alignment: enableFullWidth
+                      ? Alignment.centerLeft
+                      : Alignment.center,
                   child: _NoRatingWidget(
                     child: child,
                     size: size,
                     unratedColor: unratedColor,
                     enableMask: enableMask,
+                    enableFullWidth: enableFullWidth,
                   ),
                 ),
                 FittedBox(
                   fit: BoxFit.contain,
+                  alignment: enableFullWidth
+                      ? Alignment.centerLeft
+                      : Alignment.center,
                   child: ClipRect(
                     clipper: _HalfClipper(
                       rtlMode: rtlMode,
+                      direction: direction,
+                      reversed: reversed,
                     ),
                     child: child,
                   ),
@@ -65,6 +80,9 @@ class _HalfRatingWidget extends StatelessWidget {
           : FittedBox(
               child: child,
               fit: BoxFit.contain,
+              alignment: enableFullWidth
+                  ? Alignment.centerLeft
+                  : Alignment.center,
             ),
     );
   }
@@ -72,25 +90,43 @@ class _HalfRatingWidget extends StatelessWidget {
 
 class _HalfClipper extends CustomClipper<Rect> {
   final bool rtlMode;
+  final Axis direction;
+  final bool reversed;
 
   _HalfClipper({
-    @required this.rtlMode,
+    required this.rtlMode,
+    this.direction = Axis.horizontal,
+    this.reversed = false,
   });
 
   @override
-  Rect getClip(Size size) => rtlMode
-      ? Rect.fromLTRB(
-          size.width / 2,
-          0.0,
-          size.width,
-          size.height,
+  Rect getClip(Size size) => direction == Axis.vertical
+      ? reversed
+        ? Rect.fromLTRB(
+            0.0,
+            size.height / 2,
+            size.width,
+            size.height
+          )
+        : Rect.fromLTRB(
+            0.0,
+            0.0,
+            size.width,
+            size.height / 2
         )
-      : Rect.fromLTRB(
-          0.0,
-          0.0,
-          size.width / 2,
-          size.height,
-        );
+      : (rtlMode && !reversed) || (!rtlMode && reversed)
+        ? Rect.fromLTRB(
+            size.width / 2,
+            0.0,
+            size.width,
+            size.height,
+          )
+        : Rect.fromLTRB(
+            0.0,
+            0.0,
+            size.width / 2,
+            size.height,
+          );
 
   @override
   bool shouldReclip(CustomClipper<Rect> oldClipper) => true;
@@ -101,21 +137,26 @@ class _NoRatingWidget extends StatelessWidget {
   final Widget child;
   final bool enableMask;
   final Color unratedColor;
+  final bool enableFullWidth;
 
   _NoRatingWidget({
-    @required this.size,
-    @required this.child,
-    @required this.enableMask,
-    @required this.unratedColor,
+    required this.size,
+    required this.child,
+    required this.enableMask,
+    required this.unratedColor,
+    this.enableFullWidth = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: size,
-      width: size,
+      width: enableFullWidth ? MediaQuery.of(context).size.width : size,
       child: FittedBox(
         fit: BoxFit.contain,
+        alignment: enableFullWidth
+            ? Alignment.centerLeft
+            : Alignment.center,
         child: enableMask
             ? _ColorFilter(
                 color: unratedColor,
@@ -132,8 +173,8 @@ class _ColorFilter extends StatelessWidget {
   final Color color;
 
   _ColorFilter({
-    @required this.child,
-    @required this.color,
+    required this.child,
+    required this.color,
   });
 
   @override
@@ -218,8 +259,11 @@ class RatingBarIndicator extends StatefulWidget {
   /// {@macro flutterRatingBar.unratedColor}
   final Color unratedColor;
 
+  /// {@macro flutterRatingBar.enableFullWidth}
+  final bool enableFullWidth;
+
   RatingBarIndicator({
-    @required this.itemBuilder,
+    required this.itemBuilder,
     this.rating = 0.0,
     this.itemCount = 5,
     this.itemSize = 40.0,
@@ -228,6 +272,7 @@ class RatingBarIndicator extends StatefulWidget {
     this.textDirection,
     this.direction = Axis.horizontal,
     this.unratedColor,
+    this.enableFullWidth=false,
   });
 
   @override
@@ -292,13 +337,18 @@ class _RatingBarIndicatorState extends State<RatingBarIndicator> {
   Widget _buildItems(int index) => Padding(
         padding: widget.itemPadding,
         child: SizedBox(
-          width: widget.itemSize,
+          width: widget.enableFullWidth
+              ? MediaQuery.of(context).size.width
+              : widget.itemSize,
           height: widget.itemSize,
           child: Stack(
             fit: StackFit.expand,
             children: [
               FittedBox(
                 fit: BoxFit.contain,
+                alignment: widget.enableFullWidth
+                    ? Alignment.centerLeft
+                    : Alignment.center,
                 child: index + 1 < _ratingNumber
                     ? widget.itemBuilder(context, index)
                     : _ColorFilter(
@@ -310,6 +360,9 @@ class _RatingBarIndicatorState extends State<RatingBarIndicator> {
                 _isRTL
                     ? FittedBox(
                         fit: BoxFit.contain,
+                        alignment: widget.enableFullWidth
+                            ? Alignment.centerRight
+                            : Alignment.center,
                         child: ClipRect(
                           clipper: _IndicatorClipper(
                             ratingFraction: _ratingFraction,
@@ -320,6 +373,9 @@ class _RatingBarIndicatorState extends State<RatingBarIndicator> {
                       )
                     : FittedBox(
                         fit: BoxFit.contain,
+                        alignment: widget.enableFullWidth
+                            ? Alignment.centerLeft
+                            : Alignment.center,
                         child: ClipRect(
                           clipper: _IndicatorClipper(
                             ratingFraction: _ratingFraction,
@@ -430,6 +486,22 @@ class RatingBar extends StatefulWidget {
   /// Default = [itemCount]
   final double maxRating;
 
+  /// {@template flutterRatingBar.enableFullWidth}
+  /// If set to true, each rating will span the full width of the parent widget.
+  /// Useful for vertical direction with wide children.
+  ///
+  /// Default = false
+  /// {@endtemplate}
+  final bool enableFullWidth;
+
+  /// {@template flutterRatingBar.show}
+  /// If set to true, all of the rating widgets not equal to the rating value
+  /// will use the unrated widget.
+  ///
+  /// Default = false
+  /// {@endtemplate}
+  final bool showEqualRatingOnly;
+
   RatingBar({
     this.itemCount = 5,
     this.initialRating = 0.0,
@@ -449,6 +521,8 @@ class RatingBar extends StatefulWidget {
     this.unratedColor,
     this.minRating = 0,
     this.maxRating,
+    this.enableFullWidth = false,
+    this.showEqualRatingOnly = false
   }) : assert(
           (itemBuilder == null && ratingWidget != null) ||
               (itemBuilder != null && ratingWidget == null),
@@ -512,54 +586,90 @@ class _RatingBarState extends State<RatingBar> {
     );
   }
 
-  Widget _buildRating(BuildContext context, int index) {
-    Widget ratingWidget;
-    if (index >= _rating) {
-      ratingWidget = _NoRatingWidget(
+  Widget _buildNoRatingWidget(int index) {
+    return _NoRatingWidget(
+      size: widget.itemSize,
+      child: widget.ratingWidget?.empty ?? widget.itemBuilder(context, index),
+      enableMask: widget.ratingWidget == null,
+      unratedColor: widget.unratedColor ?? Colors.grey[200],
+      enableFullWidth: widget.enableFullWidth,
+    );
+  }
+
+  Widget _buildHalfRatingWidget(int index, {bool reversed = false}) {
+    if (widget.ratingWidget?.half == null) {
+      return _HalfRatingWidget(
         size: widget.itemSize,
-        child: widget.ratingWidget?.empty ?? widget.itemBuilder(context, index),
+        child: widget.itemBuilder(context, index),
         enableMask: widget.ratingWidget == null,
+        rtlMode: _isRTL,
         unratedColor: widget.unratedColor ?? Colors.grey[200],
+        direction: widget.direction,
+        enableFullWidth: widget.enableFullWidth,
+        reversed: reversed,
       );
-    } else if (index >= _rating - (widget.allowHalfRating ? 0.5 : 1.0) &&
-        index < _rating &&
-        widget.allowHalfRating) {
-      if (widget.ratingWidget?.half == null) {
-        ratingWidget = _HalfRatingWidget(
-          size: widget.itemSize,
-          child: widget.itemBuilder(context, index),
-          enableMask: widget.ratingWidget == null,
-          rtlMode: _isRTL,
-          unratedColor: widget.unratedColor ?? Colors.grey[200],
-        );
-      } else {
-        ratingWidget = SizedBox(
-          width: widget.itemSize,
-          height: widget.itemSize,
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: _isRTL
-                ? Transform(
-                    transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-                    alignment: Alignment.center,
-                    transformHitTests: false,
-                    child: widget.ratingWidget.half,
-                  )
-                : widget.ratingWidget.half,
-          ),
-        );
-      }
-      iconRating += 0.5;
     } else {
-      ratingWidget = SizedBox(
-        width: widget.itemSize,
+      return SizedBox(
+        width: widget.enableFullWidth
+            ? MediaQuery
+            .of(context)
+            .size
+            .width
+            : widget.itemSize,
         height: widget.itemSize,
         child: FittedBox(
           fit: BoxFit.contain,
-          child:
-              widget.ratingWidget?.full ?? widget.itemBuilder(context, index),
+          alignment: widget.enableFullWidth
+              ? Alignment.centerLeft
+              : Alignment.center,
+          child: _isRTL
+              ? Transform(
+            transform: Matrix4.identity()
+              ..scale(-1.0, 1.0, 1.0),
+            alignment: Alignment.center,
+            transformHitTests: false,
+            child: widget.ratingWidget.half,
+          )
+              : widget.ratingWidget.half,
         ),
       );
+    }
+  }
+
+  Widget _buildFullRatingWidget(int index) {
+    return SizedBox(
+      width: widget.enableFullWidth
+          ? MediaQuery.of(context).size.width
+          : widget.itemSize,
+      height: widget.itemSize,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        alignment: widget.enableFullWidth
+            ? Alignment.centerLeft
+            : Alignment.center,
+        child:
+        widget.ratingWidget?.full ?? widget.itemBuilder(context, index),
+      ),
+    );
+  }
+
+  Widget _buildRating(BuildContext context, int index) {
+    Widget ratingWidget;
+    if (index >= _rating) {
+      ratingWidget = _buildNoRatingWidget(index);
+    } else if (widget.allowHalfRating &&
+        index >= _rating - (widget.allowHalfRating ? 0.5 : 1.0)) {
+      ratingWidget = _buildHalfRatingWidget(index);
+      iconRating += 0.5;
+    } else if (!widget.showEqualRatingOnly || index >= _rating - 1.0) {
+      ratingWidget = _buildFullRatingWidget(index);
+      iconRating += 1.0;
+    } else if (widget.showEqualRatingOnly && widget.allowHalfRating &&
+        index >= _rating - (widget.allowHalfRating ? 1.5 : 2.0)) {
+      ratingWidget = _buildHalfRatingWidget(index, reversed: true);
+      iconRating += 1.0;
+    } else {
+      ratingWidget = _buildNoRatingWidget(index);
       iconRating += 1.0;
     }
 
